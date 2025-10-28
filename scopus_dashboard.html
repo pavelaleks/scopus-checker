@@ -570,8 +570,9 @@
             <div class="main-content">
                 <div class="api-info">
                     <strong>Информация:</strong> Автоматическая загрузка данных по вашему Scopus ID (58102647800).
-                    <br><strong>Лимиты:</strong> Базовый уровень доступа ограничивает количество результатов.
-                    <br><strong>Примечание:</strong> Если возникают ошибки авторизации, дашборд автоматически переключится на режим поиска с ограниченными данными.
+                    <br><strong>Режим работы:</strong> Поиск через Scopus Search API (базовый уровень доступа).
+                    <br><strong>Ограничения:</strong> H-индекс и цитирования недоступны без расширенного доступа к Author API.
+                    <br><strong>Примечание:</strong> Все функции поиска и экспорта работают в полном объеме.
                 </div>
 
                 <div class="results-header">
@@ -670,35 +671,8 @@
                 const loadingOverlay = this.showLoadingOverlay('Загрузка профиля автора...');
 
                 try {
-                    // Сначала пробуем получить данные автора через Author API
-                    try {
-                        const authorUrl = `https://api.elsevier.com/content/author/author_id/${this.authorId}?apiKey=${this.scopusApiKey}&view=metrics`;
-                        
-                        const response = await fetch(authorUrl, {
-                            headers: {
-                                'X-ELS-APIKey': this.scopusApiKey,
-                                'Accept': 'application/json'
-                            }
-                        });
-
-                        if (response.ok) {
-                            const data = await response.json();
-                            this.profileData = data;
-                            
-                            // Сохраняем в кэш
-                            this.saveToCache(`scopus_profile_${this.authorId}`, data);
-                            
-                            this.updateProfileDisplay(data);
-                            this.updateStats(data);
-                            this.showNotification('Профиль успешно загружен!', 'success');
-                            this.retryCount = 0;
-                            return;
-                        }
-                    } catch (authorError) {
-                        console.log('Author API недоступен, используем альтернативный метод');
-                    }
-
-                    // Если Author API недоступен, используем поиск для получения информации об авторе
+                    // Используем только поиск для получения информации об авторе
+                    // Author API требует расширенных прав доступа
                     await this.loadProfileViaSearch();
                     
                 } catch (error) {
@@ -713,7 +687,9 @@
             async loadProfileViaSearch() {
                 // Используем поиск для получения информации об авторе
                 const searchQuery = `AU-ID(${this.authorId})`;
-                const url = `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=1&view=STANDARD&sort=pubyear`;
+                const url = `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=25&view=STANDARD&sort=pubyear`;
+
+                console.log('Загружаем профиль через поиск:', searchQuery);
 
                 const response = await fetch(url, {
                     headers: {
@@ -727,16 +703,30 @@
                 }
 
                 const data = await response.json();
+                const totalResults = parseInt(data['search-results']['@total']) || 0;
+                
+                console.log('Найдено публикаций:', totalResults);
+                
+                // Получаем информацию об авторе из первой публикации
+                let authorName = `Автор ID: ${this.authorId}`;
+                if (data['search-results'].entry && data['search-results'].entry.length > 0) {
+                    const firstEntry = data['search-results'].entry[0];
+                    if (firstEntry.author && firstEntry.author.length > 0) {
+                        const firstAuthor = firstEntry.author[0];
+                        authorName = `${firstAuthor.surname || ''}, ${firstAuthor['given-name'] || ''}`.trim();
+                        if (authorName === ',') authorName = `Автор ID: ${this.authorId}`;
+                    }
+                }
                 
                 // Создаем псевдо-профиль на основе результатов поиска
                 const mockProfile = {
                     'author-retrieval-response': [{
                         author: {
-                            'given-name': 'Автор',
-                            surname: `ID: ${this.authorId}`,
-                            'document-count': data['search-results']['@total'] || 0,
-                            'h-index': 'N/A',
-                            'citation-count': 'N/A'
+                            'given-name': authorName.split(', ')[1] || 'Автор',
+                            surname: authorName.split(', ')[0] || `ID: ${this.authorId}`,
+                            'document-count': totalResults,
+                            'h-index': 'N/A (требует расширенный доступ)',
+                            'citation-count': 'N/A (требует расширенный доступ)'
                         }
                     }]
                 };
@@ -744,7 +734,10 @@
                 this.profileData = mockProfile;
                 this.updateProfileDisplay(mockProfile);
                 this.updateStats(mockProfile);
-                this.showNotification('Профиль загружен через поиск (ограниченные данные)', 'warning');
+                this.showNotification(`Профиль загружен через поиск. Найдено ${totalResults} публикаций`, 'success');
+                
+                // Сохраняем в кэш
+                this.saveToCache(`scopus_profile_${this.authorId}`, mockProfile);
             }
 
             updateProfileDisplay(data) {
@@ -802,33 +795,36 @@
                         `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=10&view=MINIMAL&sort=pubyear`,
                         `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=5&view=MINIMAL`
                     ];
+                    
+                    console.log('API ключ:', this.scopusApiKey.substring(0, 8) + '...');
+                    console.log('Поисковый запрос:', searchQuery);
 
                     let success = false;
                     for (const url of urls) {
                         try {
                             console.log('Пробуем URL:', url);
-                            const response = await fetch(url, {
-                                headers: {
-                                    'X-ELS-APIKey': this.scopusApiKey,
-                                    'Accept': 'application/json'
-                                }
-                            });
+                    const response = await fetch(url, {
+                        headers: {
+                            'X-ELS-APIKey': this.scopusApiKey,
+                            'Accept': 'application/json'
+                        }
+                    });
 
                             if (response.ok) {
-                                const data = await response.json();
-                                this.publicationsData = data;
-                                
-                                const results = this.formatScopusResults(data['search-results'].entry || []);
-                                this.results = results;
+                    const data = await response.json();
+                    this.publicationsData = data;
+                    
+                    const results = this.formatScopusResults(data['search-results'].entry || []);
+                    this.results = results;
                                 
                                 // Сохраняем в кэш
                                 this.saveToCache(`scopus_publications_${this.authorId}_${this.currentPeriod}`, results);
                                 
-                                this.displayResults(results);
-                                
-                                // Обновляем статистику за 5 лет
-                                if (this.currentPeriod === '5years') {
-                                    document.getElementById('last5Years').textContent = results.length;
+                    this.displayResults(results);
+                    
+                    // Обновляем статистику за 5 лет
+                    if (this.currentPeriod === '5years') {
+                        document.getElementById('last5Years').textContent = results.length;
                                 }
                                 
                                 this.showNotification(`Загружено ${results.length} публикаций`, 'success');
