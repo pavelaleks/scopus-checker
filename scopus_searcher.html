@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Универсальный поисковик научной литературы Scopus">
+    <meta name="keywords" content="scopus, поиск, научная литература, публикации, API">
+    <title>Scopus Searcher | Поисковик Scopus</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .search-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: 1fr 200px 200px;
+            gap: 20px;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input, .form-group select {
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .results-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .results-count {
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .export-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .export-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn {
+            background: #17a2b8;
+        }
+
+        .copy-btn:hover {
+            background: #138496;
+        }
+
+        .results-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            border: 1px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .result-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .result-authors {
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .result-journal {
+            color: #8e44ad;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .result-year {
+            color: #e74c3c;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .result-abstract {
+            color: #555;
+            line-height: 1.6;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .result-doi {
+            color: #3498db;
+            font-size: 0.85rem;
+            text-decoration: none;
+        }
+
+        .result-doi:hover {
+            text-decoration: underline;
+        }
+
+        .result-link {
+            color: #3498db;
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .result-link:hover {
+            background: #bbdefb;
+            text-decoration: none;
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .error-details {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            border: 1px solid #ffeaa7;
+        }
+
+        .retry-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .retry-btn:hover {
+            background: #c82333;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .search-type {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-type label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .search-type input[type="radio"] {
+            margin: 0;
+        }
+
+        .api-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #1565c0;
+        }
+
+        .api-info strong {
+            color: #0d47a1;
+        }
+
+        @media (max-width: 768px) {
+            .search-form {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+            
+            .export-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Scopus Searcher</h1>
+            <p>Поисковик научной литературы Scopus</p>
+            <div style="margin-top: 20px;">
+                <a href="index.html" style="color: white; text-decoration: none; margin-right: 20px; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">🏠 Главная</a>
+                <a href="scopus_dashboard.html" style="color: white; text-decoration: none; margin-right: 20px; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">📊 Дашборд</a>
+                <a href="settings.html" style="color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">⚙️ Настройки</a>
+            </div>
+        </div>
+
+        <div class="search-panel">
+            <div class="api-info">
+                <strong>Информация об API:</strong> Используется Scopus API с ключом для прямого доступа к базе данных Scopus. 
+                <br><strong>Лимиты:</strong> Базовый уровень доступа ограничивает количество результатов (максимум 25 за запрос).
+                <br><strong>Ошибки:</strong> Если возникают ошибки 401/403, проверьте права доступа вашего API ключа.
+            </div>
+            
+            <form class="search-form" id="scopusForm">
+                <div class="search-type">
+                    <label>
+                        <input type="radio" name="searchType" value="author" checked>
+                        Поиск по ID исследователя
+                    </label>
+                    <label>
+                        <input type="radio" name="searchType" value="affiliation">
+                        Поиск по организации
+                    </label>
+                    <label>
+                        <input type="radio" name="searchType" value="keywords">
+                        Поиск по ключевым словам
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label for="scopusQuery">ID исследователя / Название организации / Ключевые слова</label>
+                    <input type="text" id="scopusQuery" placeholder="Введите Scopus ID (например: 7004212771), название организации или ключевые слова..." required>
+                    <small style="color: #666; font-size: 0.8rem; margin-top: 5px; display: block;">
+                        <strong>Поиск по автору:</strong> введите Scopus Author ID (например: 7004212771)<br>
+                        <strong>Поиск по организации:</strong> введите название (например: "Moscow State University")<br>
+                        <strong>Поиск по ключевым словам:</strong> введите термины (например: "machine learning artificial intelligence")<br>
+                        <strong style="color: #e74c3c;">Примечание:</strong> Если возникает ошибка 401, проверьте права доступа вашего Scopus API ключа
+                    </small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="scopusStartYear">Год начала</label>
+                    <input type="number" id="scopusStartYear" min="1900" max="2024" placeholder="2020">
+                </div>
+                
+                <div class="form-group">
+                    <label for="scopusEndYear">Год окончания</label>
+                    <input type="number" id="scopusEndYear" min="1900" max="2024" placeholder="2024">
+                </div>
+                
+                <button type="submit" class="search-btn" id="scopusSearchBtn">
+                    🔍 Поиск в Scopus
+                </button>
+            </form>
+        </div>
+
+        <div class="results-panel" id="resultsPanel">
+            <div class="results-header">
+                <div class="results-count" id="resultsCount"></div>
+                <div class="export-buttons">
+                    <button class="export-btn" id="downloadTxtBtn">
+                        📥 TXT
+                    </button>
+                    <button class="export-btn" id="downloadApaBtn">
+                        📄 APA
+                    </button>
+                    <button class="export-btn" id="downloadGostBtn">
+                        📋 ГОСТ
+                    </button>
+                    <button class="export-btn" id="downloadJsonBtn">
+                        📊 JSON
+                    </button>
+                    <button class="export-btn" id="downloadExcelBtn">
+                        📈 Excel
+                    </button>
+                    <button class="export-btn copy-btn" id="copyBtn">
+                        📋 Копировать
+                    </button>
+                    <button class="export-btn" id="clearCacheBtn" style="background: #dc3545;">
+                        🗑️ Очистить кэш
+                    </button>
+                </div>
+            </div>
+            <div class="results-list" id="resultsList"></div>
+        </div>
+    </div>
+
+    <script>
+        class ScopusSearcher {
+            constructor() {
+                this.results = [];
+                this.scopusApiKey = '326d1b40932b12ea6d7413dfd2db507a';
+                this.init();
+            }
+
+            init() {
+                this.initForm();
+                this.initExportButtons();
+                this.loadCachedData();
+            }
+
+            initForm() {
+                const scopusForm = document.getElementById('scopusForm');
+                scopusForm.addEventListener('submit', (e) => this.handleScopusSearch(e));
+            }
+
+            initExportButtons() {
+                const downloadTxtBtn = document.getElementById('downloadTxtBtn');
+                const downloadApaBtn = document.getElementById('downloadApaBtn');
+                const downloadGostBtn = document.getElementById('downloadGostBtn');
+                const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+                const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+                const copyBtn = document.getElementById('copyBtn');
+                const clearCacheBtn = document.getElementById('clearCacheBtn');
+
+                downloadTxtBtn.addEventListener('click', () => this.downloadResults('txt'));
+                downloadApaBtn.addEventListener('click', () => this.downloadResults('apa'));
+                downloadGostBtn.addEventListener('click', () => this.downloadResults('gost'));
+                downloadJsonBtn.addEventListener('click', () => this.downloadResults('json'));
+                downloadExcelBtn.addEventListener('click', () => this.downloadResults('excel'));
+                copyBtn.addEventListener('click', () => this.copyResults());
+                clearCacheBtn.addEventListener('click', () => this.clearCache());
+            }
+
+            async handleScopusSearch(e) {
+                e.preventDefault();
+                
+                const query = document.getElementById('scopusQuery').value.trim();
+                const searchType = document.querySelector('input[name="searchType"]:checked').value;
+                const startYear = document.getElementById('scopusStartYear').value;
+                const endYear = document.getElementById('scopusEndYear').value;
+
+                if (!query) {
+                    this.showNotification('Пожалуйста, введите ID исследователя, название организации или ключевые слова', 'warning');
+                    return;
+                }
+
+                this.showLoading();
+                
+                try {
+                    // Сначала проверим API ключ
+                    await this.testScopusApiKey();
+                    
+                    const results = await this.searchScopus(query, searchType, startYear, endYear);
+                    this.displayResults(results);
+                    this.showNotification(`Найдено ${results.length} результатов`, 'success');
+                } catch (error) {
+                    this.handleApiError(error, 'handleScopusSearch');
+                }
+            }
+
+            async testScopusApiKey() {
+                // Простой тест API ключа с минимальными правами
+                const testUrl = 'https://api.elsevier.com/content/search/scopus?query=test&count=1&view=MINIMAL';
+                
+                try {
+                    const response = await fetch(testUrl, {
+                        headers: {
+                            'X-ELS-APIKey': this.scopusApiKey,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response.status === 401) {
+                        throw new Error('Ошибка авторизации Scopus API. Возможные причины:\n' +
+                            '1. Неверный API ключ\n' +
+                            '2. API ключ не активирован\n' +
+                            '3. Превышен лимит запросов\n' +
+                            '4. Недостаточно прав доступа для поиска');
+                    } else if (response.status === 403) {
+                        throw new Error('API ключ Scopus не имеет доступа к поиску. Проверьте:\n' +
+                            '1. Подписку на Scopus API\n' +
+                            '2. Права доступа в вашем аккаунте\n' +
+                            '3. Ограничения по IP адресу');
+                    } else if (response.status === 400) {
+                        console.log('API ключ работает, но запрос некорректный (это нормально для тестового запроса)');
+                        return; // Это нормально для тестового запроса
+                    } else if (response.status === 200) {
+                        console.log('API ключ работает корректно');
+                        return;
+                    }
+                } catch (error) {
+                    if (error.message.includes('401') || error.message.includes('403')) {
+                        throw error;
+                    }
+                    console.log('API ключ тест завершен:', error.message);
+                }
+            }
+
+            async searchScopus(query, searchType, startYear, endYear) {
+                // Формируем поисковый запрос в зависимости от типа
+                let searchQuery = '';
+                
+                if (searchType === 'author') {
+                    // Поиск по ID автора Scopus
+                    searchQuery = `AU-ID(${query})`;
+                } else if (searchType === 'affiliation') {
+                    // Поиск по аффилиации
+                    searchQuery = `AFFIL("${query}")`;
+                } else if (searchType === 'keywords') {
+                    // Поиск по ключевым словам
+                    searchQuery = `TITLE-ABS-KEY("${query}")`;
+                }
+                
+                // Добавляем фильтр по годам только если указаны
+                if (startYear && endYear) {
+                    searchQuery += ` AND PUBYEAR >= ${startYear} AND PUBYEAR <= ${endYear}`;
+                } else if (startYear) {
+                    searchQuery += ` AND PUBYEAR >= ${startYear}`;
+                } else if (endYear) {
+                    searchQuery += ` AND PUBYEAR <= ${endYear}`;
+                }
+
+                // Используем базовый view для избежания ошибок авторизации
+                const baseUrl = 'https://api.elsevier.com/content/search/scopus';
+                const params = new URLSearchParams({
+                    'query': searchQuery,
+                    'count': '25', // Уменьшаем количество для базового уровня
+                    'sort': 'pubyear',
+                    'view': 'STANDARD'
+                });
+                
+                const url = `${baseUrl}?${params.toString()}`;
+                
+                try {
+                    console.log('Scopus search URL:', url);
+                    console.log('Search query:', searchQuery);
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'X-ELS-APIKey': this.scopusApiKey,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    console.log('Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('Scopus API Error Response:', errorText);
+                        
+                        // Если ошибка 400 - превышен лимит, попробуем с меньшим количеством
+                        if (response.status === 400 && errorText.includes('maximum number allowed')) {
+                            console.log('Превышен лимит, пробуем с меньшим количеством результатов...');
+                            return await this.searchScopusWithLimit(query, searchType, startYear, endYear, 10);
+                        }
+                        
+                        // Попробуем с еще более базовым view
+                        if (response.status === 401) {
+                            return await this.searchScopusBasic(query, searchType, startYear, endYear);
+                        }
+                        
+                        throw new Error(`Scopus API error: ${response.status} - ${errorText}`);
+                    }
+                    
+                    const data = await response.json();
+                    console.log('Scopus API Response:', data);
+                    
+                    if (!data['search-results']) {
+                        throw new Error('Нет результатов от Scopus API');
+                    }
+                    
+                    return this.formatScopusResults(data['search-results'].entry || []);
+                } catch (error) {
+                    console.error('Scopus search error:', error);
+                    
+                    // Если основной метод не работает, попробуем базовый
+                    if (error.message.includes('401')) {
+                        try {
+                            return await this.searchScopusBasic(query, searchType, startYear, endYear);
+                        } catch (altError) {
+                            throw new Error(`Ошибка поиска в Scopus: ${error.message}. Базовый метод также не сработал: ${altError.message}`);
+                        }
+                    }
+                    
+                    throw new Error(`Ошибка поиска в Scopus: ${error.message}`);
+                }
+            }
+
+            async searchScopusWithLimit(query, searchType, startYear, endYear, limit = 10) {
+                // Поиск с ограниченным количеством результатов
+                let searchQuery = '';
+                
+                if (searchType === 'author') {
+                    searchQuery = `AU-ID(${query})`;
+                } else if (searchType === 'affiliation') {
+                    searchQuery = `AFFIL("${query}")`;
+                } else if (searchType === 'keywords') {
+                    searchQuery = `TITLE-ABS-KEY("${query}")`;
+                }
+                
+                // Добавляем фильтр по годам только если указаны
+                if (startYear && endYear) {
+                    searchQuery += ` AND PUBYEAR >= ${startYear} AND PUBYEAR <= ${endYear}`;
+                } else if (startYear) {
+                    searchQuery += ` AND PUBYEAR >= ${startYear}`;
+                } else if (endYear) {
+                    searchQuery += ` AND PUBYEAR <= ${endYear}`;
+                }
+
+                // Используем минимальный view и ограниченное количество
+                const url = `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=${limit}&view=MINIMAL&sort=pubyear`;
+                
+                console.log('Trying Scopus search with limit:', url);
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-ELS-APIKey': this.scopusApiKey,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Scopus API Error with limit:', errorText);
+                    
+                    // Если все еще ошибка, попробуем с еще меньшим количеством
+                    if (response.status === 400 && limit > 5) {
+                        console.log('Все еще превышен лимит, пробуем с 5 результатами...');
+                        return await this.searchScopusWithLimit(query, searchType, startYear, endYear, 5);
+                    }
+                    
+                    throw new Error(`Scopus API error with limit: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Scopus API Response with limit:', data);
+                
+                if (!data['search-results']) {
+                    throw new Error('Нет результатов от Scopus API');
+                }
+                
+                return this.formatScopusResults(data['search-results'].entry || []);
+            }
+
+            async searchScopusBasic(query, searchType, startYear, endYear) {
+                // Базовый метод с минимальными правами доступа
+                let searchQuery = '';
+                
+                if (searchType === 'author') {
+                    searchQuery = `AU-ID(${query})`;
+                } else if (searchType === 'affiliation') {
+                    searchQuery = `AFFIL(${query})`;
+                } else if (searchType === 'keywords') {
+                    searchQuery = `TITLE-ABS-KEY(${query})`;
+                }
+                
+                // Используем минимальный view для базового доступа с ограниченным количеством
+                const url = `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=10&view=MINIMAL`;
+                
+                console.log('Trying basic Scopus search:', url);
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-ELS-APIKey': this.scopusApiKey,
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Basic Scopus API Error:', errorText);
+                    throw new Error(`Basic Scopus API error: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                return this.formatScopusResults(data['search-results']?.entry || []);
+            }
+
+            formatScopusResults(entries) {
+                return entries.map(entry => ({
+                    title: entry['dc:title'] || 'Без названия',
+                    authors: this.formatScopusAuthors(entry.author || []),
+                    journal: entry['prism:publicationName'] || 'Журнал не указан',
+                    year: entry['prism:coverDate']?.substring(0, 4) || 'Год не указан',
+                    abstract: entry['dc:description'] || 'Аннотация недоступна',
+                    doi: entry['prism:doi'] || entry['dc:identifier'] || '',
+                    url: entry.link?.find(l => l['@ref'] === 'scopus')?.['@href'] || '',
+                    volume: entry['prism:volume'] || '',
+                    issue: entry['prism:issueIdentifier'] || '',
+                    pages: entry['prism:pageRange'] || '',
+                    citations: entry['citedby-count'] || 0,
+                    source: 'scopus'
+                }));
+            }
+
+            formatScopusAuthors(authors) {
+                if (!authors || authors.length === 0) return 'Авторы не указаны';
+                
+                return authors.map(author => {
+                    const givenName = author['given-name'] || '';
+                    const surname = author.surname || '';
+                    return `${surname}, ${givenName}`;
+                }).join(' | ');
+            }
+
+            displayResults(results) {
+                this.results = results;
+                
+                // Сохраняем в кэш
+                this.saveToCache('scopus_search_results', results);
+                
+                const resultsPanel = document.getElementById('resultsPanel');
+                const resultsList = document.getElementById('resultsList');
+                const resultsCount = document.getElementById('resultsCount');
+
+                resultsPanel.style.display = 'block';
+                resultsCount.textContent = `Найдено результатов: ${results.length}`;
+
+                if (results.length === 0) {
+                    resultsList.innerHTML = '<div class="no-results">Результаты не найдены. Попробуйте изменить параметры поиска.</div>';
+                    return;
+                }
+
+                resultsList.innerHTML = results.map((work, index) => this.formatResult(work, index + 1)).join('');
+            }
+
+            formatResult(work, index) {
+                const title = work.title || 'Без названия';
+                const authors = work.authors || 'Авторы не указаны';
+                const journal = work.journal || 'Журнал не указан';
+                const year = work.year || 'Год не указан';
+                const abstract = work.abstract || 'Аннотация недоступна';
+                const doi = work.doi || '';
+                const linkUrl = work.url || '#';
+                const citations = work.citations || 0;
+
+                return `
+                    <div class="result-item">
+                        <div class="result-title">${title}</div>
+                        <div class="result-authors">${authors}</div>
+                        <div class="result-journal">${journal}</div>
+                        <div class="result-year">Год: ${year} | Цитирования: ${citations}</div>
+                        <div class="result-abstract">${abstract}</div>
+                        <div class="result-doi">DOI: ${doi}</div>
+                        <a href="${linkUrl}" target="_blank" class="result-link">
+                            🔗 Перейти к статье в Scopus
+                        </a>
+                    </div>
+                `;
+            }
+
+            showLoading() {
+                const resultsPanel = document.getElementById('resultsPanel');
+                const resultsList = document.getElementById('resultsList');
+                
+                resultsPanel.style.display = 'block';
+                resultsList.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>Поиск в Scopus...</div>
+                    </div>
+                `;
+            }
+
+            showError(message, details = null, showRetry = false) {
+                const resultsPanel = document.getElementById('resultsPanel');
+                const resultsList = document.getElementById('resultsList');
+                
+                resultsPanel.style.display = 'block';
+                let errorHtml = `<div class="error">${message}`;
+                
+                if (details) {
+                    errorHtml += `<div class="error-details">${details}</div>`;
+                }
+                
+                if (showRetry) {
+                    errorHtml += `<button class="retry-btn" onclick="searcher.retryLastSearch()">Повторить поиск</button>`;
+                }
+                
+                errorHtml += '</div>';
+                resultsList.innerHTML = errorHtml;
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => notification.classList.add('show'), 100);
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => document.body.removeChild(notification), 300);
+                }, 3000);
+            }
+
+            retryLastSearch() {
+                const searchBtn = document.getElementById('scopusSearchBtn');
+                searchBtn.click();
+            }
+
+            handleApiError(error, context = '') {
+                console.error(`API Error in ${context}:`, error);
+                
+                let userMessage = 'Произошла ошибка при обращении к Scopus API';
+                let details = '';
+                
+                if (error.message.includes('401')) {
+                    userMessage = 'Ошибка авторизации Scopus API';
+                    details = 'Проверьте правильность API ключа и его права доступа';
+                } else if (error.message.includes('403')) {
+                    userMessage = 'Доступ запрещен';
+                    details = 'API ключ не имеет необходимых прав доступа';
+                } else if (error.message.includes('429')) {
+                    userMessage = 'Превышен лимит запросов';
+                    details = 'Попробуйте позже или используйте другой API ключ';
+                } else if (error.message.includes('500')) {
+                    userMessage = 'Ошибка сервера Scopus';
+                    details = 'Временная недоступность сервиса, попробуйте позже';
+                } else if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+                    userMessage = 'Ошибка сети';
+                    details = 'Проверьте подключение к интернету';
+                } else {
+                    details = error.message;
+                }
+                
+                this.showError(userMessage, details, true);
+                this.showNotification(userMessage, 'error');
+            }
+
+            downloadResults(format = 'txt') {
+                if (this.results.length === 0) {
+                    this.showNotification('Нет результатов для скачивания', 'warning');
+                    return;
+                }
+
+                let content, filename, mimeType;
+                
+                switch(format) {
+                    case 'apa':
+                        content = this.formatResultsForAPA();
+                        filename = `scopus-results-apa-${new Date().toISOString().split('T')[0]}.txt`;
+                        mimeType = 'text/plain;charset=utf-8';
+                        break;
+                    case 'gost':
+                        content = this.formatResultsForGOST();
+                        filename = `scopus-results-gost-${new Date().toISOString().split('T')[0]}.txt`;
+                        mimeType = 'text/plain;charset=utf-8';
+                        break;
+                    case 'json':
+                        content = this.formatResultsForJSON();
+                        filename = `scopus-results-${new Date().toISOString().split('T')[0]}.json`;
+                        mimeType = 'application/json;charset=utf-8';
+                        break;
+                    case 'excel':
+                        this.downloadExcel();
+                        return;
+                    default:
+                        content = this.formatResultsForExport();
+                        filename = `scopus-results-${new Date().toISOString().split('T')[0]}.txt`;
+                        mimeType = 'text/plain;charset=utf-8';
+                }
+
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.showNotification(`Файл ${filename} скачан`, 'success');
+            }
+
+            copyResults() {
+                if (this.results.length === 0) {
+                    alert('Нет результатов для копирования');
+                    return;
+                }
+
+                const text = this.formatResultsForExport();
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Результаты скопированы в буфер обмена!');
+                }).catch(err => {
+                    console.error('Ошибка копирования: ', err);
+                    alert('Ошибка при копировании. Попробуйте скачать файл.');
+                });
+            }
+
+            formatResultsForExport() {
+                const query = document.getElementById('scopusQuery').value;
+                const searchType = document.querySelector('input[name="searchType"]:checked').value;
+                const startYear = document.getElementById('scopusStartYear').value;
+                const endYear = document.getElementById('scopusEndYear').value;
+                
+                let text = `РЕЗУЛЬТАТЫ ПОИСКА В SCOPUS\n`;
+                text += `Поисковый запрос: ${query} (${searchType === 'author' ? 'ID автора' : searchType === 'affiliation' ? 'Аффилиация' : 'Ключевые слова'})\n`;
+                if (startYear || endYear) {
+                    text += `Период: ${startYear || 'не указан'} - ${endYear || 'не указан'}\n`;
+                }
+                text += `Дата поиска: ${new Date().toLocaleString('ru-RU')}\n`;
+                text += `Найдено результатов: ${this.results.length}\n\n`;
+                text += `========================================\n\n`;
+
+                this.results.forEach((work, index) => {
+                    const title = work.title || 'Без названия';
+                    const authors = work.authors || 'Авторы не указаны';
+                    const journal = work.journal || 'Журнал не указан';
+                    const year = work.year || 'Год не указан';
+                    const doi = work.doi || '';
+                    const citations = work.citations || 0;
+
+                    text += `${index + 1}. ${title}\n`;
+                    text += `Авторы: ${authors}\n`;
+                    text += `Журнал: ${journal}\n`;
+                    text += `Год: ${year}\n`;
+                    text += `Цитирования: ${citations}\n`;
+                    text += `DOI: ${doi}\n\n`;
+                });
+
+                return text;
+            }
+
+            formatResultsForAPA() {
+                const query = document.getElementById('scopusQuery').value;
+                const searchType = document.querySelector('input[name="searchType"]:checked').value;
+                const startYear = document.getElementById('scopusStartYear').value;
+                const endYear = document.getElementById('scopusEndYear').value;
+                
+                let text = `REFERENCES (APA FORMAT)\n`;
+                text += `Search query: ${query} (${searchType === 'author' ? 'Author ID' : searchType === 'affiliation' ? 'Affiliation' : 'Keywords'})\n`;
+                if (startYear || endYear) {
+                    text += `Publication period: ${startYear || 'not specified'} - ${endYear || 'not specified'}\n`;
+                }
+                text += `Search date: ${new Date().toLocaleString('en-US')}\n`;
+                text += `Total results: ${this.results.length}\n\n`;
+
+                this.results.forEach((work, index) => {
+                    const title = work.title || 'Untitled';
+                    const year = work.year || 'n.d.';
+                    const doi = work.doi || '';
+                    const volume = work.volume || '';
+                    const issue = work.issue || '';
+                    const pages = work.pages || '';
+
+                    // Format authors in APA style
+                    const authorString = this.formatScopusAuthorsForAPA(work.authors);
+
+                    // Format journal info
+                    const journal = work.journal || 'Unknown Journal';
+                    let journalInfo = journal;
+                    if (volume) {
+                        journalInfo += `, ${volume}`;
+                        if (issue) {
+                            journalInfo += `(${issue})`;
+                        }
+                        if (pages) {
+                            journalInfo += `, ${pages}`;
+                        }
+                    }
+
+                    // Construct APA reference
+                    text += `${authorString} (${year}). ${title}. ${journalInfo}`;
+                    if (doi) {
+                        text += `. https://doi.org/${doi}`;
+                    }
+                    text += '.\n\n';
+                });
+
+                return text;
+            }
+
+            formatScopusAuthorsForAPA(authorsString) {
+                if (!authorsString || authorsString === 'Авторы не указаны') return 'Anonymous';
+                
+                // Разбиваем строку авторов на отдельных авторов
+                // Формат: "Фамилия1, Имя1 | Фамилия2, Имя2"
+                const authors = authorsString.split(' | ');
+                
+                if (authors.length === 0) return 'Anonymous';
+                
+                if (authors.length === 1) {
+                    const [surname, givenName] = authors[0].split(', ');
+                    return `${surname}, ${givenName.charAt(0).toUpperCase()}.`;
+                } else if (authors.length <= 7) {
+                    return authors.map(author => {
+                        const [surname, givenName] = author.split(', ');
+                        return `${surname}, ${givenName.charAt(0).toUpperCase()}.`;
+                    }).join(', ');
+                } else {
+                    const [surname, givenName] = authors[0].split(', ');
+                    return `${surname}, ${givenName.charAt(0).toUpperCase()}., et al.`;
+                }
+            }
+
+            formatResultsForGOST() {
+                const query = document.getElementById('scopusQuery').value;
+                const searchType = document.querySelector('input[name="searchType"]:checked').value;
+                const startYear = document.getElementById('scopusStartYear').value;
+                const endYear = document.getElementById('scopusEndYear').value;
+                
+                let text = `СПИСОК ЛИТЕРАТУРЫ (ГОСТ 7.1-2003)\n`;
+                text += `Поисковый запрос: ${query} (${searchType === 'author' ? 'ID автора' : searchType === 'affiliation' ? 'Аффилиация' : 'Ключевые слова'})\n`;
+                if (startYear || endYear) {
+                    text += `Период публикации: ${startYear || 'не указан'} - ${endYear || 'не указан'}\n`;
+                }
+                text += `Дата поиска: ${new Date().toLocaleString('ru-RU')}\n`;
+                text += `Всего результатов: ${this.results.length}\n\n`;
+
+                this.results.forEach((work, index) => {
+                    const title = work.title || 'Без названия';
+                    const year = work.year || 'б.г.';
+                    const doi = work.doi || '';
+                    const volume = work.volume || '';
+                    const issue = work.issue || '';
+                    const pages = work.pages || '';
+
+                    // Format authors in GOST style
+                    const authorString = this.formatScopusAuthorsForGOST(work.authors);
+
+                    // Format journal info
+                    const journal = work.journal || 'Неизвестный журнал';
+                    let journalInfo = journal;
+                    if (volume) {
+                        journalInfo += `. – ${year}. – Т. ${volume}`;
+                        if (issue) {
+                            journalInfo += `, № ${issue}`;
+                        }
+                        if (pages) {
+                            journalInfo += `. – С. ${pages}`;
+                        }
+                    } else {
+                        journalInfo += `. – ${year}`;
+                    }
+
+                    // Construct GOST reference
+                    text += `${authorString} ${title} // ${journalInfo}`;
+                    if (doi) {
+                        text += `. – DOI: ${doi}`;
+                    }
+                    text += '.\n\n';
+                });
+
+                return text;
+            }
+
+            formatScopusAuthorsForGOST(authorsString) {
+                if (!authorsString || authorsString === 'Авторы не указаны') return 'Аноним';
+                
+                // Разбиваем строку авторов на отдельных авторов
+                // Формат: "Фамилия1, Имя1 | Фамилия2, Имя2"
+                const authors = authorsString.split(' | ');
+                
+                if (authors.length === 0) return 'Аноним';
+                
+                if (authors.length === 1) {
+                    return authors[0].replace(', ', ' ');
+                } else if (authors.length <= 3) {
+                    return authors.map(author => author.replace(', ', ' ')).join(', ');
+                } else {
+                    return `${authors[0].replace(', ', ' ')} [и др.]`;
+                }
+            }
+
+            formatResultsForJSON() {
+                const query = document.getElementById('scopusQuery').value;
+                const searchType = document.querySelector('input[name="searchType"]:checked').value;
+                const startYear = document.getElementById('scopusStartYear').value;
+                const endYear = document.getElementById('scopusEndYear').value;
+                
+                const exportData = {
+                    metadata: {
+                        searchQuery: query,
+                        searchType: searchType,
+                        startYear: startYear || null,
+                        endYear: endYear || null,
+                        exportDate: new Date().toISOString(),
+                        totalResults: this.results.length,
+                        source: 'Scopus API'
+                    },
+                    publications: this.results.map((work, index) => ({
+                        id: index + 1,
+                        title: work.title,
+                        authors: work.authors,
+                        journal: work.journal,
+                        year: work.year,
+                        abstract: work.abstract,
+                        doi: work.doi,
+                        url: work.url,
+                        citations: work.citations,
+                        volume: work.volume,
+                        issue: work.issue,
+                        pages: work.pages,
+                        source: work.source
+                    }))
+                };
+                
+                return JSON.stringify(exportData, null, 2);
+            }
+
+            downloadExcel() {
+                // Создаем CSV файл (простая альтернатива Excel)
+                const csvContent = this.formatResultsForCSV();
+                const filename = `scopus-results-${new Date().toISOString().split('T')[0]}.csv`;
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.showNotification(`Файл ${filename} скачан`, 'success');
+            }
+
+            formatResultsForCSV() {
+                const headers = ['№', 'Название', 'Авторы', 'Журнал', 'Год', 'Цитирования', 'DOI', 'URL'];
+                const rows = this.results.map((work, index) => [
+                    index + 1,
+                    `"${work.title.replace(/"/g, '""')}"`,
+                    `"${work.authors.replace(/"/g, '""')}"`,
+                    `"${work.journal.replace(/"/g, '""')}"`,
+                    work.year,
+                    work.citations,
+                    work.doi,
+                    work.url
+                ]);
+                
+                return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+            }
+
+            // Методы для работы с кэшем
+            loadCachedData() {
+                try {
+                    const cachedResults = localStorage.getItem('scopus_search_results');
+                    
+                    if (cachedResults) {
+                        const searchData = JSON.parse(cachedResults);
+                        const cacheTime = new Date(searchData.cacheTime);
+                        const now = new Date();
+                        const hoursDiff = (now - cacheTime) / (1000 * 60 * 60);
+                        
+                        // Используем кэш если он не старше 2 часов
+                        if (hoursDiff < 2) {
+                            this.results = searchData.data;
+                            this.displayResults(searchData.data);
+                            this.showNotification('Загружены кэшированные результаты поиска', 'success');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки кэшированных данных:', error);
+                }
+            }
+
+            saveToCache(key, data) {
+                try {
+                    const cacheData = {
+                        data: data,
+                        cacheTime: new Date().toISOString()
+                    };
+                    localStorage.setItem(key, JSON.stringify(cacheData));
+                } catch (error) {
+                    console.error('Ошибка сохранения в кэш:', error);
+                }
+            }
+
+            clearCache() {
+                try {
+                    const keys = Object.keys(localStorage);
+                    keys.forEach(key => {
+                        if (key.startsWith('scopus_')) {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                    this.showNotification('Кэш очищен', 'success');
+                } catch (error) {
+                    console.error('Ошибка очистки кэша:', error);
+                }
+            }
+        }
+
+        // Инициализация приложения
+        let searcher;
+        document.addEventListener('DOMContentLoaded', () => {
+            searcher = new ScopusSearcher();
+        });
+    </script>
+</body>
+</html>

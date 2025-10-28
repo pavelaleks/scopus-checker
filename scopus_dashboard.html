@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Персональный дашборд для анализа публикационной активности в Scopus">
+    <meta name="keywords" content="scopus, dashboard, публикации, h-индекс, цитирования">
+    <title>Мой Scopus Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .sidebar {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            height: fit-content;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .profile-card {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .profile-avatar {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .profile-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .profile-id {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .quick-actions {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .action-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .period-selector {
+            margin-bottom: 20px;
+        }
+
+        .period-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        .period-btn {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .period-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .period-btn:hover:not(.active) {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+
+        .results-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .results-count {
+            font-size: 1.1rem;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .export-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .export-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .copy-btn {
+            background: #17a2b8;
+        }
+
+        .copy-btn:hover {
+            background: #138496;
+        }
+
+        .results-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .result-item {
+            border: 1px solid #e1e5e9;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .result-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .result-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .result-authors {
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+
+        .result-journal {
+            color: #8e44ad;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .result-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+
+        .result-year {
+            color: #e74c3c;
+            font-weight: 600;
+        }
+
+        .result-citations {
+            color: #27ae60;
+            font-weight: 600;
+        }
+
+        .result-doi {
+            color: #3498db;
+            font-size: 0.85rem;
+            text-decoration: none;
+        }
+
+        .result-doi:hover {
+            text-decoration: underline;
+        }
+
+        .result-link {
+            color: #3498db;
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 10px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .result-link:hover {
+            background: #bbdefb;
+            text-decoration: none;
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .error-details {
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            border: 1px solid #ffeaa7;
+        }
+
+        .retry-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .retry-btn:hover {
+            background: #c82333;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .api-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            color: #1565c0;
+        }
+
+        .api-info strong {
+            color: #0d47a1;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .period-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .results-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+            
+            .export-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Мой Scopus Dashboard</h1>
+            <p>Персональный инструмент для анализа публикационной активности</p>
+            <div style="margin-top: 20px;">
+                <a href="index.html" style="color: white; text-decoration: none; margin-right: 20px; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">🏠 Главная</a>
+                <a href="scopus_searcher.html" style="color: white; text-decoration: none; margin-right: 20px; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">🔍 Поисковик</a>
+                <a href="settings.html" style="color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">⚙️ Настройки</a>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <!-- Боковая панель -->
+            <div class="sidebar">
+                <div class="profile-card">
+                    <div class="profile-avatar">👨‍🔬</div>
+                    <div class="profile-name" id="profileName">Загрузка...</div>
+                    <div class="profile-id">ID: 58102647800</div>
+                </div>
+
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalPublications">-</div>
+                        <div class="stat-label">Всего статей</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="hIndex">-</div>
+                        <div class="stat-label">h-индекс</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalCitations">-</div>
+                        <div class="stat-label">Цитирования</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="last5Years">-</div>
+                        <div class="stat-label">За 5 лет</div>
+                    </div>
+                </div>
+
+                <div class="quick-actions">
+                    <div class="section-title">Быстрые действия</div>
+                    <button class="action-btn" onclick="loadProfile()" id="loadProfileBtn">
+                        🔄 Обновить профиль
+                    </button>
+                    <button class="action-btn" onclick="loadPublications()" id="loadPublicationsBtn">
+                        📚 Загрузить статьи
+                    </button>
+                    <button class="action-btn" onclick="exportAll()" id="exportAllBtn">
+                        📥 Экспорт всех данных
+                    </button>
+                    <button class="action-btn" onclick="clearCache()" id="clearCacheBtn" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);">
+                        🗑️ Очистить кэш
+                    </button>
+                </div>
+
+                <div class="period-selector">
+                    <div class="section-title">Период публикаций</div>
+                    <div class="period-buttons">
+                        <button class="period-btn active" data-period="all">Все время</button>
+                        <button class="period-btn" data-period="5years">5 лет</button>
+                        <button class="period-btn" data-period="current">Текущий год</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Основной контент -->
+            <div class="main-content">
+                <div class="api-info">
+                    <strong>Информация:</strong> Автоматическая загрузка данных по вашему Scopus ID (58102647800).
+                    <br><strong>Лимиты:</strong> Базовый уровень доступа ограничивает количество результатов.
+                    <br><strong>Примечание:</strong> Если возникают ошибки авторизации, дашборд автоматически переключится на режим поиска с ограниченными данными.
+                </div>
+
+                <div class="results-header">
+                    <div class="results-count" id="resultsCount">Выберите период для загрузки статей</div>
+                    <div class="export-buttons">
+                        <button class="export-btn" id="downloadTxtBtn">
+                            📥 TXT
+                        </button>
+                        <button class="export-btn" id="downloadApaBtn">
+                            📄 APA
+                        </button>
+                        <button class="export-btn" id="downloadGostBtn">
+                            📋 ГОСТ
+                        </button>
+                        <button class="export-btn" id="downloadJsonBtn">
+                            📊 JSON
+                        </button>
+                        <button class="export-btn" id="downloadExcelBtn">
+                            📈 Excel
+                        </button>
+                        <button class="export-btn copy-btn" id="copyBtn">
+                            📋 Копировать
+                        </button>
+                    </div>
+                </div>
+                <div class="results-list" id="resultsList">
+                    <div class="no-results">
+                        Нажмите "Загрузить статьи" для получения списка публикаций
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class ScopusDashboard {
+            constructor() {
+                this.scopusApiKey = '326d1b40932b12ea6d7413dfd2db507a';
+                this.authorId = '58102647800';
+                this.currentPeriod = 'all';
+                this.profileData = null;
+                this.publicationsData = null;
+                this.results = [];
+                this.retryCount = 0;
+                this.maxRetries = 3;
+                
+                this.init();
+            }
+
+            init() {
+                this.initPeriodButtons();
+                this.initExportButtons();
+                this.loadCachedData();
+                this.loadProfile();
+            }
+
+            initPeriodButtons() {
+                const periodButtons = document.querySelectorAll('.period-btn');
+                periodButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        periodButtons.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.currentPeriod = btn.dataset.period;
+                        
+                        // Очищаем текущие результаты при смене периода
+                        this.results = [];
+                        document.getElementById('resultsList').innerHTML = '<div class="no-results">Загрузка публикаций для выбранного периода...</div>';
+                        
+                        // Загружаем публикации для нового периода
+                        this.loadPublications();
+                    });
+                });
+            }
+
+            initExportButtons() {
+                const downloadTxtBtn = document.getElementById('downloadTxtBtn');
+                const downloadApaBtn = document.getElementById('downloadApaBtn');
+                const downloadGostBtn = document.getElementById('downloadGostBtn');
+                const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+                const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+                const copyBtn = document.getElementById('copyBtn');
+
+                downloadTxtBtn.addEventListener('click', () => this.downloadResults('txt'));
+                downloadApaBtn.addEventListener('click', () => this.downloadResults('apa'));
+                downloadGostBtn.addEventListener('click', () => this.downloadResults('gost'));
+                downloadJsonBtn.addEventListener('click', () => this.downloadResults('json'));
+                downloadExcelBtn.addEventListener('click', () => this.downloadResults('excel'));
+                copyBtn.addEventListener('click', () => this.copyResults());
+            }
+
+            async loadProfile() {
+                const loadBtn = document.getElementById('loadProfileBtn');
+                loadBtn.disabled = true;
+                loadBtn.textContent = '⏳ Загрузка...';
+                
+                const loadingOverlay = this.showLoadingOverlay('Загрузка профиля автора...');
+
+                try {
+                    // Сначала пробуем получить данные автора через Author API
+                    try {
+                        const authorUrl = `https://api.elsevier.com/content/author/author_id/${this.authorId}?apiKey=${this.scopusApiKey}&view=metrics`;
+                        
+                        const response = await fetch(authorUrl, {
+                            headers: {
+                                'X-ELS-APIKey': this.scopusApiKey,
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.profileData = data;
+                            
+                            // Сохраняем в кэш
+                            this.saveToCache(`scopus_profile_${this.authorId}`, data);
+                            
+                            this.updateProfileDisplay(data);
+                            this.updateStats(data);
+                            this.showNotification('Профиль успешно загружен!', 'success');
+                            this.retryCount = 0;
+                            return;
+                        }
+                    } catch (authorError) {
+                        console.log('Author API недоступен, используем альтернативный метод');
+                    }
+
+                    // Если Author API недоступен, используем поиск для получения информации об авторе
+                    await this.loadProfileViaSearch();
+                    
+                } catch (error) {
+                    this.handleApiError(error, 'loadProfile');
+                } finally {
+                    loadBtn.disabled = false;
+                    loadBtn.textContent = '🔄 Обновить профиль';
+                    this.hideLoadingOverlay(loadingOverlay);
+                }
+            }
+
+            async loadProfileViaSearch() {
+                // Используем поиск для получения информации об авторе
+                const searchQuery = `AU-ID(${this.authorId})`;
+                const url = `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=1&view=STANDARD&sort=pubyear`;
+
+                const response = await fetch(url, {
+                    headers: {
+                        'X-ELS-APIKey': this.scopusApiKey,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: Поиск автора недоступен`);
+                }
+
+                const data = await response.json();
+                
+                // Создаем псевдо-профиль на основе результатов поиска
+                const mockProfile = {
+                    'author-retrieval-response': [{
+                        author: {
+                            'given-name': 'Автор',
+                            surname: `ID: ${this.authorId}`,
+                            'document-count': data['search-results']['@total'] || 0,
+                            'h-index': 'N/A',
+                            'citation-count': 'N/A'
+                        }
+                    }]
+                };
+
+                this.profileData = mockProfile;
+                this.updateProfileDisplay(mockProfile);
+                this.updateStats(mockProfile);
+                this.showNotification('Профиль загружен через поиск (ограниченные данные)', 'warning');
+            }
+
+            updateProfileDisplay(data) {
+                const profileName = document.getElementById('profileName');
+                if (data['author-retrieval-response'] && data['author-retrieval-response'][0]) {
+                    const author = data['author-retrieval-response'][0].author;
+                    const givenName = author['given-name'] || '';
+                    const surname = author.surname || '';
+                    profileName.textContent = `${givenName} ${surname}`.trim() || 'Неизвестный автор';
+                } else {
+                    profileName.textContent = 'Профиль не найден';
+                }
+            }
+
+            updateStats(data) {
+                if (data['author-retrieval-response'] && data['author-retrieval-response'][0]) {
+                    const author = data['author-retrieval-response'][0].author;
+                    
+                    document.getElementById('totalPublications').textContent = author['document-count'] || 0;
+                    document.getElementById('hIndex').textContent = author['h-index'] || 0;
+                    document.getElementById('totalCitations').textContent = author['citation-count'] || 0;
+                }
+            }
+
+            async loadPublications() {
+                const loadBtn = document.getElementById('loadPublicationsBtn');
+                loadBtn.disabled = true;
+                loadBtn.textContent = '⏳ Загрузка...';
+
+                const loadingOverlay = this.showLoadingOverlay('Поиск публикаций...');
+                this.showLoading();
+
+                try {
+                    let searchQuery = `AU-ID(${this.authorId})`;
+                    
+                    // Добавляем фильтр по периоду
+                    const currentYear = new Date().getFullYear();
+                    console.log('Текущий период:', this.currentPeriod);
+                    console.log('Текущий год:', currentYear);
+                    
+                    if (this.currentPeriod === '5years') {
+                        const startYear = currentYear - 5;
+                        searchQuery += ` AND PUBYEAR >= ${startYear}`;
+                        console.log('Поиск за 5 лет с года:', startYear);
+                    } else if (this.currentPeriod === 'current') {
+                        searchQuery += ` AND PUBYEAR = ${currentYear}`;
+                        console.log('Поиск за текущий год:', currentYear);
+                    }
+                    
+                    console.log('Итоговый поисковый запрос:', searchQuery);
+
+                    // Пробуем разные варианты запроса
+                    const urls = [
+                        `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=25&view=STANDARD&sort=pubyear`,
+                        `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=10&view=MINIMAL&sort=pubyear`,
+                        `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=5&view=MINIMAL`
+                    ];
+
+                    let success = false;
+                    for (const url of urls) {
+                        try {
+                            console.log('Пробуем URL:', url);
+                            const response = await fetch(url, {
+                                headers: {
+                                    'X-ELS-APIKey': this.scopusApiKey,
+                                    'Accept': 'application/json'
+                                }
+                            });
+
+                            if (response.ok) {
+                                const data = await response.json();
+                                this.publicationsData = data;
+                                
+                                const results = this.formatScopusResults(data['search-results'].entry || []);
+                                this.results = results;
+                                
+                                // Сохраняем в кэш
+                                this.saveToCache(`scopus_publications_${this.authorId}_${this.currentPeriod}`, results);
+                                
+                                this.displayResults(results);
+                                
+                                // Обновляем статистику за 5 лет
+                                if (this.currentPeriod === '5years') {
+                                    document.getElementById('last5Years').textContent = results.length;
+                                }
+                                
+                                this.showNotification(`Загружено ${results.length} публикаций`, 'success');
+                                this.retryCount = 0;
+                                success = true;
+                                break;
+                            } else {
+                                console.log(`Ошибка ${response.status} для URL:`, url);
+                            }
+                        } catch (urlError) {
+                            console.log('Ошибка для URL:', url, urlError);
+                        }
+                    }
+
+                    if (!success) {
+                        throw new Error('Все варианты загрузки публикаций недоступны');
+                    }
+                    
+                } catch (error) {
+                    this.handleApiError(error, 'loadPublications');
+                } finally {
+                    loadBtn.disabled = false;
+                    loadBtn.textContent = '📚 Загрузить статьи';
+                    this.hideLoadingOverlay(loadingOverlay);
+                }
+            }
+
+            async loadPublicationsWithLimit(searchQuery, limit) {
+                const url = `https://api.elsevier.com/content/search/scopus?query=${encodeURIComponent(searchQuery)}&count=${limit}&view=MINIMAL&sort=pubyear`;
+
+                const response = await fetch(url, {
+                    headers: {
+                        'X-ELS-APIKey': this.scopusApiKey,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Ошибка загрузки статей: ${response.status}`);
+                }
+
+                const data = await response.json();
+                this.publicationsData = data;
+                
+                const results = this.formatScopusResults(data['search-results'].entry || []);
+                this.results = results;
+                this.displayResults(results);
+            }
+
+            formatScopusResults(entries) {
+                return entries.map(entry => ({
+                    title: entry['dc:title'] || 'Без названия',
+                    authors: this.formatScopusAuthors(entry.author || []),
+                    journal: entry['prism:publicationName'] || 'Журнал не указан',
+                    year: entry['prism:coverDate']?.substring(0, 4) || 'Год не указан',
+                    abstract: entry['dc:description'] || 'Аннотация недоступна',
+                    doi: entry['prism:doi'] || entry['dc:identifier'] || '',
+                    url: entry.link?.find(l => l['@ref'] === 'scopus')?.['@href'] || '',
+                    volume: entry['prism:volume'] || '',
+                    issue: entry['prism:issueIdentifier'] || '',
+                    pages: entry['prism:pageRange'] || '',
+                    citations: entry['citedby-count'] || 0,
+                    source: 'scopus'
+                }));
+            }
+
+            formatScopusAuthors(authors) {
+                if (!authors || authors.length === 0) return 'Авторы не указаны';
+                
+                return authors.map(author => {
+                    const givenName = author['given-name'] || '';
+                    const surname = author.surname || '';
+                    return `${surname}, ${givenName}`;
+                }).join(' | ');
+            }
+
+            displayResults(results) {
+                const resultsList = document.getElementById('resultsList');
+                const resultsCount = document.getElementById('resultsCount');
+
+                const periodNames = {
+                    'all': 'Все время',
+                    '5years': 'Последние 5 лет',
+                    'current': 'Текущий год'
+                };
+
+                resultsCount.textContent = `Найдено результатов: ${results.length} (${periodNames[this.currentPeriod]})`;
+
+                if (results.length === 0) {
+                    resultsList.innerHTML = '<div class="no-results">Результаты не найдены для выбранного периода.</div>';
+                    return;
+                }
+
+                resultsList.innerHTML = results.map((work, index) => this.formatResult(work, index + 1)).join('');
+            }
+
+            formatResult(work, index) {
+                const title = work.title || 'Без названия';
+                const authors = work.authors || 'Авторы не указаны';
+                const journal = work.journal || 'Журнал не указан';
+                const year = work.year || 'Год не указан';
+                const abstract = work.abstract || 'Аннотация недоступна';
+                const doi = work.doi || '';
+                const linkUrl = work.url || '#';
+                const citations = work.citations || 0;
+
+                return `
+                    <div class="result-item">
+                        <div class="result-title">${title}</div>
+                        <div class="result-authors">${authors}</div>
+                        <div class="result-journal">${journal}</div>
+                        <div class="result-meta">
+                            <span class="result-year">📅 ${year}</span>
+                            <span class="result-citations">📊 ${citations} цитирований</span>
+                        </div>
+                        <div class="result-abstract">${abstract}</div>
+                        <div class="result-doi">DOI: ${doi}</div>
+                        <a href="${linkUrl}" target="_blank" class="result-link">
+                            🔗 Перейти к статье в Scopus
+                        </a>
+                    </div>
+                `;
+            }
+
+            showLoading() {
+                const resultsList = document.getElementById('resultsList');
+                resultsList.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <div>Загрузка публикаций...</div>
+                    </div>
+                `;
+            }
+
+            showError(message, details = null, showRetry = false) {
+                const resultsList = document.getElementById('resultsList');
+                let errorHtml = `<div class="error">${message}`;
+                
+                if (details) {
+                    errorHtml += `<div class="error-details">${details}</div>`;
+                }
+                
+                if (showRetry) {
+                    errorHtml += `<button class="retry-btn" onclick="dashboard.retryLastOperation()">Повторить попытку</button>`;
+                }
+                
+                errorHtml += '</div>';
+                resultsList.innerHTML = errorHtml;
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => notification.classList.add('show'), 100);
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => document.body.removeChild(notification), 300);
+                }, 3000);
+            }
+
+            showLoadingOverlay(message = 'Загрузка...') {
+                const overlay = document.createElement('div');
+                overlay.className = 'loading-overlay';
+                overlay.innerHTML = `
+                    <div class="loading-content">
+                        <div class="spinner"></div>
+                        <div>${message}</div>
+                    </div>
+                `;
+                document.body.appendChild(overlay);
+                
+                setTimeout(() => overlay.classList.add('show'), 100);
+                return overlay;
+            }
+
+            hideLoadingOverlay(overlay) {
+                if (overlay) {
+                    overlay.classList.remove('show');
+                    setTimeout(() => {
+                        if (overlay.parentNode) {
+                            document.body.removeChild(overlay);
+                        }
+                    }, 300);
+                }
+            }
+
+            retryLastOperation() {
+                this.retryCount++;
+                if (this.retryCount <= this.maxRetries) {
+                    this.showNotification(`Повторная попытка ${this.retryCount}/${this.maxRetries}`, 'warning');
+                    this.loadProfile();
+                } else {
+                    this.showNotification('Превышено максимальное количество попыток', 'error');
+                }
+            }
+
+            handleApiError(error, context = '') {
+                console.error(`API Error in ${context}:`, error);
+                
+                let userMessage = 'Произошла ошибка при обращении к Scopus API';
+                let details = '';
+                
+                if (error.message.includes('401')) {
+                    userMessage = 'Ошибка авторизации Scopus API';
+                    details = 'Проверьте правильность API ключа и его права доступа';
+                } else if (error.message.includes('403')) {
+                    userMessage = 'Доступ запрещен';
+                    details = 'API ключ не имеет необходимых прав доступа';
+                } else if (error.message.includes('429')) {
+                    userMessage = 'Превышен лимит запросов';
+                    details = 'Попробуйте позже или используйте другой API ключ';
+                } else if (error.message.includes('500')) {
+                    userMessage = 'Ошибка сервера Scopus';
+                    details = 'Временная недоступность сервиса, попробуйте позже';
+                } else if (error.message.includes('NetworkError') || error.message.includes('fetch')) {
+                    userMessage = 'Ошибка сети';
+                    details = 'Проверьте подключение к интернету';
+                } else {
+                    details = error.message;
+                }
+                
+                this.showError(userMessage, details, true);
+                this.showNotification(userMessage, 'error');
+            }
+
+            downloadResults(format = 'txt') {
+                if (this.results.length === 0) {
+                    this.showNotification('Нет результатов для скачивания', 'warning');
+                    return;
+                }
+
+                let content, filename, mimeType;
+                
+                switch(format) {
+                    case 'apa':
+                        content = this.formatResultsForAPA();
+                        filename = `scopus-publications-apa-${new Date().toISOString().split('T')[0]}.txt`;
+                        mimeType = 'text/plain;charset=utf-8';
+                        break;
+                    case 'gost':
+                        content = this.formatResultsForGOST();
+                        filename = `scopus-publications-gost-${new Date().toISOString().split('T')[0]}.txt`;
+                        mimeType = 'text/plain;charset=utf-8';
+                        break;
+                    case 'json':
+                        content = this.formatResultsForJSON();
+                        filename = `scopus-publications-${new Date().toISOString().split('T')[0]}.json`;
+                        mimeType = 'application/json;charset=utf-8';
+                        break;
+                    case 'excel':
+                        this.downloadExcel();
+                        return;
+                    default:
+                        content = this.formatResultsForExport();
+                        filename = `scopus-publications-${new Date().toISOString().split('T')[0]}.txt`;
+                        mimeType = 'text/plain;charset=utf-8';
+                }
+
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.showNotification(`Файл ${filename} скачан`, 'success');
+            }
+
+            copyResults() {
+                if (this.results.length === 0) {
+                    alert('Нет результатов для копирования');
+                    return;
+                }
+
+                const text = this.formatResultsForExport();
+                navigator.clipboard.writeText(text).then(() => {
+                    alert('Результаты скопированы в буфер обмена!');
+                }).catch(err => {
+                    console.error('Ошибка копирования: ', err);
+                    alert('Ошибка при копировании. Попробуйте скачать файл.');
+                });
+            }
+
+            exportAll() {
+                if (!this.profileData && !this.publicationsData) {
+                    alert('Нет данных для экспорта. Сначала загрузите профиль и публикации.');
+                    return;
+                }
+
+                let text = `ПОЛНЫЙ ОТЧЕТ ПО SCOPUS\n`;
+                text += `Автор ID: ${this.authorId}\n`;
+                text += `Дата отчета: ${new Date().toLocaleString('ru-RU')}\n\n`;
+
+                if (this.profileData) {
+                    text += `СТАТИСТИКА ПРОФИЛЯ:\n`;
+                    const author = this.profileData['author-retrieval-response'][0].author;
+                    text += `Всего публикаций: ${author['document-count'] || 0}\n`;
+                    text += `h-индекс: ${author['h-index'] || 0}\n`;
+                    text += `Общие цитирования: ${author['citation-count'] || 0}\n\n`;
+                }
+
+                if (this.results.length > 0) {
+                    text += `ПУБЛИКАЦИИ (${this.currentPeriod}):\n`;
+                    text += this.formatResultsForExport();
+                }
+
+                const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `scopus-full-report-${new Date().toISOString().split('T')[0]}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+
+            formatResultsForExport() {
+                const periodNames = {
+                    'all': 'Все время',
+                    '5years': 'Последние 5 лет',
+                    'current': 'Текущий год'
+                };
+
+                let text = `ПУБЛИКАЦИИ ЗА ${periodNames[this.currentPeriod].toUpperCase()}\n`;
+                text += `Найдено результатов: ${this.results.length}\n\n`;
+
+                this.results.forEach((work, index) => {
+                    const title = work.title || 'Без названия';
+                    const authors = work.authors || 'Авторы не указаны';
+                    const journal = work.journal || 'Журнал не указан';
+                    const year = work.year || 'Год не указан';
+                    const doi = work.doi || '';
+                    const citations = work.citations || 0;
+
+                    text += `${index + 1}. ${title}\n`;
+                    text += `Авторы: ${authors}\n`;
+                    text += `Журнал: ${journal}\n`;
+                    text += `Год: ${year}\n`;
+                    text += `Цитирования: ${citations}\n`;
+                    text += `DOI: ${doi}\n\n`;
+                });
+
+                return text;
+            }
+
+            formatResultsForAPA() {
+                let text = `REFERENCES (APA FORMAT)\n`;
+                text += `Author ID: ${this.authorId}\n`;
+                text += `Period: ${this.currentPeriod}\n`;
+                text += `Total results: ${this.results.length}\n\n`;
+
+                this.results.forEach((work, index) => {
+                    const title = work.title || 'Untitled';
+                    const year = work.year || 'n.d.';
+                    const doi = work.doi || '';
+                    const journal = work.journal || 'Unknown Journal';
+
+                    // Format authors in APA style
+                    const authorString = this.formatScopusAuthorsForAPA(work.authors);
+
+                    // Construct APA reference
+                    text += `${authorString} (${year}). ${title}. ${journal}`;
+                    if (doi) {
+                        text += `. https://doi.org/${doi}`;
+                    }
+                    text += '.\n\n';
+                });
+
+                return text;
+            }
+
+            formatScopusAuthorsForAPA(authorsString) {
+                if (!authorsString || authorsString === 'Авторы не указаны') return 'Anonymous';
+                
+                // Разбиваем строку авторов на отдельных авторов
+                // Формат: "Фамилия1, Имя1 | Фамилия2, Имя2"
+                const authors = authorsString.split(' | ');
+                
+                if (authors.length === 0) return 'Anonymous';
+                
+                if (authors.length === 1) {
+                    const [surname, givenName] = authors[0].split(', ');
+                    return `${surname}, ${givenName.charAt(0).toUpperCase()}.`;
+                } else if (authors.length <= 7) {
+                    return authors.map(author => {
+                        const [surname, givenName] = author.split(', ');
+                        return `${surname}, ${givenName.charAt(0).toUpperCase()}.`;
+                    }).join(', ');
+                } else {
+                    const [surname, givenName] = authors[0].split(', ');
+                    return `${surname}, ${givenName.charAt(0).toUpperCase()}., et al.`;
+                }
+            }
+
+            formatResultsForGOST() {
+                let text = `СПИСОК ЛИТЕРАТУРЫ (ГОСТ 7.1-2003)\n`;
+                text += `ID автора: ${this.authorId}\n`;
+                text += `Период: ${this.currentPeriod}\n`;
+                text += `Всего результатов: ${this.results.length}\n\n`;
+
+                this.results.forEach((work, index) => {
+                    const title = work.title || 'Без названия';
+                    const year = work.year || 'б.г.';
+                    const doi = work.doi || '';
+                    const journal = work.journal || 'Неизвестный журнал';
+
+                    // Format authors in GOST style
+                    const authorString = this.formatScopusAuthorsForGOST(work.authors);
+
+                    // Construct GOST reference
+                    text += `${authorString} ${title} // ${journal}. – ${year}`;
+                    if (doi) {
+                        text += `. – DOI: ${doi}`;
+                    }
+                    text += '.\n\n';
+                });
+
+                return text;
+            }
+
+            formatScopusAuthorsForGOST(authorsString) {
+                if (!authorsString || authorsString === 'Авторы не указаны') return 'Аноним';
+                
+                // Разбиваем строку авторов на отдельных авторов
+                // Формат: "Фамилия1, Имя1 | Фамилия2, Имя2"
+                const authors = authorsString.split(' | ');
+                
+                if (authors.length === 0) return 'Аноним';
+                
+                if (authors.length === 1) {
+                    return authors[0].replace(', ', ' ');
+                } else if (authors.length <= 3) {
+                    return authors.map(author => author.replace(', ', ' ')).join(', ');
+                } else {
+                    return `${authors[0].replace(', ', ' ')} [и др.]`;
+                }
+            }
+
+            formatResultsForJSON() {
+                const exportData = {
+                    metadata: {
+                        authorId: this.authorId,
+                        exportDate: new Date().toISOString(),
+                        period: this.currentPeriod,
+                        totalResults: this.results.length,
+                        source: 'Scopus API'
+                    },
+                    profile: this.profileData ? {
+                        name: this.getProfileName(),
+                        totalPublications: this.getProfileStat('document-count'),
+                        hIndex: this.getProfileStat('h-index'),
+                        totalCitations: this.getProfileStat('citation-count')
+                    } : null,
+                    publications: this.results.map((work, index) => ({
+                        id: index + 1,
+                        title: work.title,
+                        authors: work.authors,
+                        journal: work.journal,
+                        year: work.year,
+                        abstract: work.abstract,
+                        doi: work.doi,
+                        url: work.url,
+                        citations: work.citations,
+                        volume: work.volume,
+                        issue: work.issue,
+                        pages: work.pages,
+                        source: work.source
+                    }))
+                };
+                
+                return JSON.stringify(exportData, null, 2);
+            }
+
+            downloadExcel() {
+                // Создаем CSV файл (простая альтернатива Excel)
+                const csvContent = this.formatResultsForCSV();
+                const filename = `scopus-publications-${new Date().toISOString().split('T')[0]}.csv`;
+                
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                this.showNotification(`Файл ${filename} скачан`, 'success');
+            }
+
+            formatResultsForCSV() {
+                const headers = ['№', 'Название', 'Авторы', 'Журнал', 'Год', 'Цитирования', 'DOI', 'URL'];
+                const rows = this.results.map((work, index) => [
+                    index + 1,
+                    `"${work.title.replace(/"/g, '""')}"`,
+                    `"${work.authors.replace(/"/g, '""')}"`,
+                    `"${work.journal.replace(/"/g, '""')}"`,
+                    work.year,
+                    work.citations,
+                    work.doi,
+                    work.url
+                ]);
+                
+                return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+            }
+
+            getProfileName() {
+                if (this.profileData && this.profileData['author-retrieval-response'] && this.profileData['author-retrieval-response'][0]) {
+                    const author = this.profileData['author-retrieval-response'][0].author;
+                    const givenName = author['given-name'] || '';
+                    const surname = author.surname || '';
+                    return `${givenName} ${surname}`.trim();
+                }
+                return 'Неизвестный автор';
+            }
+
+            getProfileStat(statName) {
+                if (this.profileData && this.profileData['author-retrieval-response'] && this.profileData['author-retrieval-response'][0]) {
+                    return this.profileData['author-retrieval-response'][0].author[statName] || 0;
+                }
+                return 0;
+            }
+
+            // Методы для работы с кэшем
+            loadCachedData() {
+                try {
+                    const cachedProfile = localStorage.getItem(`scopus_profile_${this.authorId}`);
+                    const cachedPublications = localStorage.getItem(`scopus_publications_${this.authorId}_${this.currentPeriod}`);
+                    
+                    if (cachedProfile) {
+                        const profileData = JSON.parse(cachedProfile);
+                        const cacheTime = new Date(profileData.cacheTime);
+                        const now = new Date();
+                        const hoursDiff = (now - cacheTime) / (1000 * 60 * 60);
+                        
+                        // Используем кэш если он не старше 24 часов
+                        if (hoursDiff < 24) {
+                            this.profileData = profileData.data;
+                            this.updateProfileDisplay(profileData.data);
+                            this.updateStats(profileData.data);
+                            this.showNotification('Загружены кэшированные данные профиля', 'success');
+                        }
+                    }
+                    
+                    if (cachedPublications) {
+                        const publicationsData = JSON.parse(cachedPublications);
+                        const cacheTime = new Date(publicationsData.cacheTime);
+                        const now = new Date();
+                        const hoursDiff = (now - cacheTime) / (1000 * 60 * 60);
+                        
+                        // Используем кэш если он не старше 6 часов
+                        if (hoursDiff < 6) {
+                            this.results = publicationsData.data;
+                            this.displayResults(publicationsData.data);
+                            this.showNotification('Загружены кэшированные данные публикаций', 'success');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки кэшированных данных:', error);
+                }
+            }
+
+            saveToCache(key, data) {
+                try {
+                    const cacheData = {
+                        data: data,
+                        cacheTime: new Date().toISOString()
+                    };
+                    localStorage.setItem(key, JSON.stringify(cacheData));
+                } catch (error) {
+                    console.error('Ошибка сохранения в кэш:', error);
+                }
+            }
+
+            clearCache() {
+                try {
+                    const keys = Object.keys(localStorage);
+                    keys.forEach(key => {
+                        if (key.startsWith('scopus_')) {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                    this.showNotification('Кэш очищен', 'success');
+                } catch (error) {
+                    console.error('Ошибка очистки кэша:', error);
+                }
+            }
+        }
+
+        // Глобальные функции для кнопок
+        function loadProfile() {
+            dashboard.loadProfile();
+        }
+
+        function loadPublications() {
+            dashboard.loadPublications();
+        }
+
+        function exportAll() {
+            dashboard.exportAll();
+        }
+
+        function clearCache() {
+            dashboard.clearCache();
+        }
+
+        // Инициализация приложения
+        let dashboard;
+        document.addEventListener('DOMContentLoaded', () => {
+            dashboard = new ScopusDashboard();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta name="description" content="Профессиональный инструмент для работы с Scopus API - анализ публикаций, поиск литературы, экспорт данных">
+    <meta name="keywords" content="scopus, academic, research, publications, API, библиометрия, наукометрия">
+    <meta name="author" content="Scopus Checker">
+    <meta property="og:title" content="Scopus Checker - Инструмент для работы с Scopus API">
+    <meta property="og:description" content="Профессиональные инструменты для анализа публикационной активности и поиска научной литературы">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 300;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }
+
+        .header .subtitle {
+            font-size: 1rem;
+            opacity: 0.8;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tool-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+        }
+
+        .tool-icon {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        .tool-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .tool-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            font-size: 1rem;
+        }
+
+        .tool-features {
+            list-style: none;
+            margin-bottom: 30px;
+        }
+
+        .tool-features li {
+            padding: 5px 0;
+            color: #555;
+            font-size: 0.95rem;
+            position: relative;
+            padding-left: 20px;
+        }
+
+        .tool-features li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .tool-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .tool-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            text-decoration: none;
+            color: white;
+        }
+
+        .features-section {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            margin-bottom: 40px;
+        }
+
+        .features-title {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 25px;
+        }
+
+        .feature-item {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .feature-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .feature-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .feature-description {
+            color: #666;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            padding: 30px 0;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .api-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+            color: #1565c0;
+        }
+
+        .api-info strong {
+            color: #0d47a1;
+        }
+
+        .api-info ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .api-info li {
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2.5rem;
+            }
+            
+            .tools-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .tool-card {
+                padding: 25px;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-online {
+            background-color: #27ae60;
+            animation: pulse 2s infinite;
+        }
+
+        .status-offline {
+            background-color: #e74c3c;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Scopus Checker</h1>
+            <p>Комплексный инструмент для работы с научной базой данных Scopus</p>
+            <div class="subtitle">
+                Профессиональные инструменты для анализа публикационной активности, 
+                поиска научной литературы и управления библиографическими данными
+            </div>
+        </div>
+
+        <div class="api-info">
+            <strong>📋 Информация о проекте:</strong>
+            <ul>
+                <li><span class="status-indicator status-online"></span>Интеграция с официальным Scopus API</li>
+                <li><span class="status-indicator status-online"></span>Поддержка различных форматов экспорта (APA, ГОСТ, TXT)</li>
+                <li><span class="status-indicator status-online"></span>Адаптивный дизайн для всех устройств</li>
+                <li><span class="status-indicator status-online"></span>Автоматическое форматирование библиографических ссылок</li>
+                <li><span class="status-indicator status-online"></span>Фильтрация по периодам и типам публикаций</li>
+            </ul>
+        </div>
+
+        <div class="tools-grid">
+            <div class="tool-card">
+                <span class="tool-icon">📊</span>
+                <h2 class="tool-title">Персональный Дашборд</h2>
+                <p class="tool-description">
+                    Анализ публикационной активности конкретного исследователя. 
+                    Получайте статистику по публикациям, цитированиям и h-индексу.
+                </p>
+                <ul class="tool-features">
+                    <li>Автоматическая загрузка профиля автора</li>
+                    <li>Статистика публикаций и цитирований</li>
+                    <li>Фильтрация по периодам (все время, 5 лет, текущий год)</li>
+                    <li>Экспорт данных в различных форматах</li>
+                    <li>Визуализация метрик исследователя</li>
+                </ul>
+                <a href="scopus_dashboard.html" class="tool-btn">
+                    Открыть Дашборд
+                </a>
+            </div>
+
+            <div class="tool-card">
+                <span class="tool-icon">🔍</span>
+                <h2 class="tool-title">Универсальный Поисковик</h2>
+                <p class="tool-description">
+                    Поиск научной литературы по авторам, организациям и ключевым словам. 
+                    Гибкие фильтры и мощные возможности экспорта.
+                </p>
+                <ul class="tool-features">
+                    <li>Поиск по Scopus Author ID</li>
+                    <li>Поиск по названию организации</li>
+                    <li>Поиск по ключевым словам</li>
+                    <li>Фильтрация по годам публикации</li>
+                    <li>Экспорт в APA, ГОСТ и других форматах</li>
+                </ul>
+                <a href="scopus_searcher.html" class="tool-btn">
+                    Открыть Поисковик
+                </a>
+            </div>
+        </div>
+
+        <div class="features-section">
+            <h2 class="features-title">Возможности системы</h2>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <span class="feature-icon">🔗</span>
+                    <h3 class="feature-title">API Интеграция</h3>
+                    <p class="feature-description">
+                        Прямая интеграция с официальным Scopus API для получения актуальных данных
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📈</span>
+                    <h3 class="feature-title">Аналитика</h3>
+                    <p class="feature-description">
+                        Детальная статистика публикаций, цитирований и исследовательских метрик
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📄</span>
+                    <h3 class="feature-title">Форматы экспорта</h3>
+                    <p class="feature-description">
+                        Экспорт в APA, ГОСТ, TXT и других академических форматах
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🎯</span>
+                    <h3 class="feature-title">Точный поиск</h3>
+                    <p class="feature-description">
+                        Продвинутые фильтры и поисковые запросы для точных результатов
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📱</span>
+                    <h3 class="feature-title">Адаптивность</h3>
+                    <p class="feature-description">
+                        Оптимизированный интерфейс для работы на любых устройствах
+                    </p>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚡</span>
+                    <h3 class="feature-title">Производительность</h3>
+                    <p class="feature-description">
+                        Быстрая обработка запросов и эффективное кэширование данных
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Scopus Checker v2.0 | Создано для эффективной работы с научной литературой</p>
+            <p style="font-size: 0.9rem; margin-top: 10px;">
+                Использует официальный Scopus API | Требуется действующий API ключ
+            </p>
+            <div style="margin-top: 15px;">
+                <a href="settings.html" style="color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">⚙️ Настройки</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Проверка доступности API при загрузке страницы
+        document.addEventListener('DOMContentLoaded', () => {
+            checkApiStatus();
+        });
+
+        async function checkApiStatus() {
+            const indicators = document.querySelectorAll('.status-indicator');
+            
+            try {
+                // Простая проверка доступности Scopus API
+                const testUrl = 'https://api.elsevier.com/content/search/scopus?query=test&count=1&view=MINIMAL';
+                const response = await fetch(testUrl, {
+                    headers: {
+                        'X-ELS-APIKey': '326d1b40932b12ea6d7413dfd2db507a',
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                // Если получили ответ (даже с ошибкой), API доступен
+                indicators.forEach(indicator => {
+                    indicator.className = 'status-indicator status-online';
+                });
+            } catch (error) {
+                // Если ошибка сети, API недоступен
+                indicators.forEach(indicator => {
+                    indicator.className = 'status-indicator status-offline';
+                });
+            }
+        }
+    </script>
+</body>
+</html>

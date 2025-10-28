@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Настройки Scopus Checker - конфигурация API ключей и параметров">
+    <meta name="keywords" content="scopus, настройки, API, конфигурация">
+    <title>Настройки | Scopus Checker</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .settings-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 0.95rem;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group small {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-valid {
+            background-color: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-invalid {
+            background-color: #dc3545;
+        }
+
+        .status-unknown {
+            background-color: #ffc107;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        .notification.warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .api-status {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .api-status h3 {
+            color: #1565c0;
+            margin-bottom: 10px;
+        }
+
+        .api-status p {
+            color: #1565c0;
+            font-size: 0.9rem;
+            margin: 5px 0;
+        }
+
+        .help-text {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        .help-text h4 {
+            color: #495057;
+            margin-bottom: 10px;
+        }
+
+        .help-text ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .help-text li {
+            margin: 5px 0;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Настройки Scopus Checker</h1>
+            <p>Конфигурация API ключей и параметров системы</p>
+            <div style="margin-top: 20px;">
+                <a href="index.html" style="color: white; text-decoration: none; margin-right: 20px; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">🏠 Главная</a>
+                <a href="scopus_dashboard.html" style="color: white; text-decoration: none; margin-right: 20px; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">📊 Дашборд</a>
+                <a href="scopus_searcher.html" style="color: white; text-decoration: none; padding: 8px 16px; background: rgba(255,255,255,0.2); border-radius: 5px;">🔍 Поисковик</a>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <h2 class="section-title">🔑 API Конфигурация</h2>
+            
+            <div class="api-status">
+                <h3>Статус API ключа</h3>
+                <p><span class="status-indicator status-unknown" id="apiStatusIndicator"></span><span id="apiStatusText">Проверка...</span></p>
+                <p id="apiStatusDetails">Выполняется проверка доступности Scopus API</p>
+            </div>
+
+            <div class="form-group">
+                <label for="scopusApiKey">Scopus API Key</label>
+                <input type="password" id="scopusApiKey" placeholder="Введите ваш Scopus API ключ">
+                <small>Ваш персональный API ключ для доступа к Scopus API. Получить можно на сайте Elsevier Developer Portal.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="authorId">Scopus Author ID (для дашборда)</label>
+                <input type="text" id="authorId" placeholder="Например: 58102647800">
+                <small>Уникальный идентификатор автора в базе Scopus для персонального дашборда.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="defaultSearchLimit">Лимит результатов по умолчанию</label>
+                <select id="defaultSearchLimit">
+                    <option value="10">10 результатов</option>
+                    <option value="25" selected>25 результатов</option>
+                    <option value="50">50 результатов</option>
+                    <option value="100">100 результатов</option>
+                </select>
+                <small>Максимальное количество результатов для одного поискового запроса.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="defaultView">Вид данных по умолчанию</label>
+                <select id="defaultView">
+                    <option value="MINIMAL">Минимальный</option>
+                    <option value="STANDARD" selected>Стандартный</option>
+                    <option value="COMPLETE">Полный</option>
+                </select>
+                <small>Уровень детализации данных, получаемых от Scopus API.</small>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <h2 class="section-title">📊 Настройки экспорта</h2>
+
+            <div class="form-group">
+                <label for="defaultExportFormat">Формат экспорта по умолчанию</label>
+                <select id="defaultExportFormat">
+                    <option value="txt" selected>Текстовый файл</option>
+                    <option value="apa">APA</option>
+                    <option value="gost">ГОСТ</option>
+                    <option value="json">JSON</option>
+                </select>
+                <small>Формат файлов для экспорта результатов поиска.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="includeAbstracts">Включать аннотации в экспорт</label>
+                <select id="includeAbstracts">
+                    <option value="true" selected>Да</option>
+                    <option value="false">Нет</option>
+                </select>
+                <small>Добавлять ли аннотации статей в экспортируемые файлы.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="includeCitations">Включать информацию о цитированиях</label>
+                <select id="includeCitations">
+                    <option value="true" selected>Да</option>
+                    <option value="false">Нет</option>
+                </select>
+                <small>Добавлять ли данные о количестве цитирований в экспорт.</small>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <h2 class="section-title">🎨 Настройки интерфейса</h2>
+
+            <div class="form-group">
+                <label for="theme">Тема оформления</label>
+                <select id="theme">
+                    <option value="default" selected>По умолчанию</option>
+                    <option value="dark">Темная</option>
+                    <option value="light">Светлая</option>
+                </select>
+                <small>Выберите цветовую схему интерфейса.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="language">Язык интерфейса</label>
+                <select id="language">
+                    <option value="ru" selected>Русский</option>
+                    <option value="en">English</option>
+                </select>
+                <small>Язык интерфейса приложения.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="notifications">Уведомления</label>
+                <select id="notifications">
+                    <option value="true" selected>Включены</option>
+                    <option value="false">Отключены</option>
+                </select>
+                <small>Показывать ли всплывающие уведомления о результатах операций.</small>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="saveSettings()">💾 Сохранить настройки</button>
+            <button class="btn btn-secondary" onclick="loadSettings()">🔄 Загрузить настройки</button>
+            <button class="btn btn-success" onclick="testApiKey()">🧪 Тестировать API</button>
+            <button class="btn btn-danger" onclick="resetSettings()">🗑️ Сбросить настройки</button>
+        </div>
+
+        <div class="help-text">
+            <h4>📖 Справка по настройкам</h4>
+            <ul>
+                <li><strong>Scopus API Key:</strong> Получите на <a href="https://dev.elsevier.com/" target="_blank">Elsevier Developer Portal</a></li>
+                <li><strong>Author ID:</strong> Найдите в профиле автора на сайте Scopus</li>
+                <li><strong>Лимиты:</strong> Базовый уровень API ограничивает количество результатов</li>
+                <li><strong>Экспорт:</strong> Настройки влияют на все операции экспорта</li>
+                <li><strong>Сохранение:</strong> Настройки сохраняются в браузере локально</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        class SettingsManager {
+            constructor() {
+                this.defaultSettings = {
+                    scopusApiKey: '326d1b40932b12ea6d7413dfd2db507a',
+                    authorId: '58102647800',
+                    defaultSearchLimit: '25',
+                    defaultView: 'STANDARD',
+                    defaultExportFormat: 'txt',
+                    includeAbstracts: 'true',
+                    includeCitations: 'true',
+                    theme: 'default',
+                    language: 'ru',
+                    notifications: 'true'
+                };
+                
+                this.init();
+            }
+
+            init() {
+                this.loadSettings();
+                this.testApiKey();
+            }
+
+            loadSettings() {
+                const settings = JSON.parse(localStorage.getItem('scopusSettings')) || this.defaultSettings;
+                
+                // Заполняем форму значениями из настроек
+                Object.keys(settings).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.value = settings[key];
+                    }
+                });
+                
+                this.showNotification('Настройки загружены', 'success');
+            }
+
+            saveSettings() {
+                const settings = {};
+                
+                // Собираем значения из формы
+                Object.keys(this.defaultSettings).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        settings[key] = element.value;
+                    }
+                });
+                
+                // Сохраняем в localStorage
+                localStorage.setItem('scopusSettings', JSON.stringify(settings));
+                
+                this.showNotification('Настройки сохранены', 'success');
+                
+                // Обновляем статус API
+                this.testApiKey();
+            }
+
+            async testApiKey() {
+                const apiKey = document.getElementById('scopusApiKey').value;
+                const statusIndicator = document.getElementById('apiStatusIndicator');
+                const statusText = document.getElementById('apiStatusText');
+                const statusDetails = document.getElementById('apiStatusDetails');
+                
+                if (!apiKey) {
+                    statusIndicator.className = 'status-indicator status-invalid';
+                    statusText.textContent = 'API ключ не указан';
+                    statusDetails.textContent = 'Введите ваш Scopus API ключ для тестирования';
+                    return;
+                }
+                
+                statusIndicator.className = 'status-indicator status-unknown';
+                statusText.textContent = 'Проверка...';
+                statusDetails.textContent = 'Выполняется проверка доступности Scopus API';
+                
+                try {
+                    const testUrl = 'https://api.elsevier.com/content/search/scopus?query=test&count=1&view=MINIMAL';
+                    
+                    const response = await fetch(testUrl, {
+                        headers: {
+                            'X-ELS-APIKey': apiKey,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (response.status === 200) {
+                        statusIndicator.className = 'status-indicator status-valid';
+                        statusText.textContent = 'API ключ действителен';
+                        statusDetails.textContent = 'Scopus API доступен и работает корректно';
+                    } else if (response.status === 401) {
+                        statusIndicator.className = 'status-indicator status-invalid';
+                        statusText.textContent = 'Ошибка авторизации';
+                        statusDetails.textContent = 'API ключ неверный или не активирован';
+                    } else if (response.status === 403) {
+                        statusIndicator.className = 'status-indicator status-invalid';
+                        statusText.textContent = 'Доступ запрещен';
+                        statusDetails.textContent = 'API ключ не имеет необходимых прав доступа';
+                    } else {
+                        statusIndicator.className = 'status-indicator status-unknown';
+                        statusText.textContent = 'Статус неизвестен';
+                        statusDetails.textContent = `Получен ответ ${response.status}, проверьте настройки`;
+                    }
+                } catch (error) {
+                    statusIndicator.className = 'status-indicator status-invalid';
+                    statusText.textContent = 'Ошибка сети';
+                    statusDetails.textContent = 'Не удается подключиться к Scopus API';
+                }
+            }
+
+            resetSettings() {
+                if (confirm('Вы уверены, что хотите сбросить все настройки к значениям по умолчанию?')) {
+                    localStorage.removeItem('scopusSettings');
+                    this.loadSettings();
+                    this.showNotification('Настройки сброшены', 'success');
+                }
+            }
+
+            showNotification(message, type = 'success') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => notification.classList.add('show'), 100);
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => document.body.removeChild(notification), 300);
+                }, 3000);
+            }
+        }
+
+        // Глобальные функции для кнопок
+        function saveSettings() {
+            settingsManager.saveSettings();
+        }
+
+        function loadSettings() {
+            settingsManager.loadSettings();
+        }
+
+        function testApiKey() {
+            settingsManager.testApiKey();
+        }
+
+        function resetSettings() {
+            settingsManager.resetSettings();
+        }
+
+        // Инициализация
+        let settingsManager;
+        document.addEventListener('DOMContentLoaded', () => {
+            settingsManager = new SettingsManager();
+        });
+    </script>
+</body>
+</html>
